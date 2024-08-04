@@ -3,6 +3,7 @@
 
 ![AD9833_MCP41010_module.jpg](AD9833_MCP41010_module.jpg)
 
+Output on max volume and PGA out
 
  ![triangle_1MHz.png](triangle_1MHz.png)
 
