@@ -44,8 +44,6 @@
 unsigned long freq = 400;
 uint16_t form = SINUS;
 
-uint8_t pot_value;
-
 void setup()
 {
   pinMode(CS, OUTPUT);
@@ -132,7 +130,7 @@ void loop()
       {      
         if((len>0) && (len<4))
         {                  
-          pot_value = atoi (buf);
+          uint8_t pot_value = atoi (buf);
           write_word(WRITE_DATA | P0 | pot_value, DAT, CLK, CS);//update MCP41010
           Serial.print("Potentiometer ");
           Serial.println(pot_value);          
