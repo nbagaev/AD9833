@@ -42,7 +42,6 @@
 /////////////AD9833 
 
 unsigned long freq = 400;
-uint16_t freq_MSB, freq_LSB;
 uint16_t form = SINUS;
 
 uint8_t pot_value;
@@ -162,10 +161,9 @@ void update_form()
 
 void update_freq()
 {
-  long freq_reg;
-  freq_reg = (freq * 268435456.0) / MCLK; //2^28 = 268435456 
-  freq_MSB = (uint16_t)((freq_reg) >> 14);//frequency registers are 28 bits wide, get 14 MSB
-  freq_LSB = (uint16_t)(freq_reg & 0x3FFF);//get 14 LSB; 3FFF = 0011 1111 1111 1111
+  long freq_reg = (freq * 268435456.0) / MCLK; //2^28 = 268435456 
+  uint16_t freq_MSB = (uint16_t)((freq_reg) >> 14);//frequency registers are 28 bits wide, get 14 MSB
+  uint16_t freq_LSB = (uint16_t)(freq_reg & 0x3FFF);//get 14 LSB; 3FFF = 0011 1111 1111 1111
   write_word(freq_LSB | FREQ_REG_0, DAT, CLK, FSY);
   write_word(freq_MSB | FREQ_REG_0, DAT, CLK, FSY);     
 }
