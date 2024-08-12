@@ -1,7 +1,7 @@
-#define CS  9 //MCP41010 CS PIN
-#define FSY 10 //AD9833 FSYNC PIN
-#define DAT 11 //AD9833 SDATA PIN
-#define CLK 13 //AD9833 SCLK PIN
+#define CS  6 //MCP41010 CS PIN
+#define FSY 7 //AD9833 FSYNC PIN
+#define DAT 8 //AD9833 MCP41010 SDATA PIN
+#define CLK 9 //AD9833 MCP41010 SCLK PIN
 
 #define MCLK 25000000.0 //AD9833 25MHz master clock
 
@@ -33,12 +33,12 @@
 #define SQUARE      (B28 | OPBITEN | DIV2)
 
 //Frequency Register Bits
-#define WRITE_FREQ0 0x4000 //writing to FREQ0 register
-#define WRITE_FREQ1 0x8000 //writing to FREQ1 register
+#define FREQ_REG_0 0x4000 //writing to FREQ0 register
+#define FREQ_REG_1 0x8000 //writing to FREQ1 register
 
 //Phase Register Bits
-#define WRITE_PHASE0 0xC000 //writing to PHASE0 register
-#define WRITE_PHASE1 0xE000 //writing to PHASE1 register
+#define PHASE_REG_0 0xC000 //writing to PHASE0 register
+#define PHASE_REG_1 0xE000 //writing to PHASE1 register
 /////////////AD9833 
 
 unsigned long freq = 400;
@@ -85,10 +85,11 @@ void loop()
       {        
         if((len>0) && (len<11))
         {                  
-          freq = atof (buf);
+          freq = strtoul(buf, NULL, 10);
           if((freq >= 0.0) && (freq < 5000000)) 
           {
             form = SINUS;
+            update_form();
             update_freq();         
             Serial.print("Sinus ");
             Serial.println(freq);            
@@ -100,11 +101,12 @@ void loop()
       {       
         if((len>0) && (len<11))
         {
-          freq = atof (buf);
+          freq = strtoul(buf, NULL, 10);
           if((freq >= 0.0) && (freq <= 5000000))
           {
             form = TRIANGLE;
-            update_freq();
+            update_form();
+            update_freq();            
             Serial.print("Triangle ");
             Serial.println(freq);
           }
@@ -115,10 +117,11 @@ void loop()
       {      
         if((len>0) && (len<11))
         {               
-          freq = atof (buf);
+          freq = strtoul(buf, NULL, 10);
           if((freq >= 0.0) && (freq <= 5000000))
           {
-            form=SQUARE;      
+            form=SQUARE;
+            update_form();      
             update_freq();
             Serial.print("Rectangle ");
             Serial.println(freq);            
@@ -130,8 +133,8 @@ void loop()
       {      
         if((len>0) && (len<4))
         {                  
-          pot_value = atof (buf);
-          update_MCP41010(WRITE_DATA | P0 | pot_value);
+          pot_value = atoi (buf);
+          write_word(WRITE_DATA | P0 | pot_value, DAT, CLK, CS);//update MCP41010
           Serial.print("Potentiometer ");
           Serial.println(pot_value);          
         }
@@ -140,55 +143,38 @@ void loop()
   }
 }
 
-void prepare_freq()
+void write_word(uint16_t data, uint8_t sda, uint8_t sclk, uint8_t cs)
+{
+  digitalWrite(cs, 0);
+  for (int i = 15; i >= 0; i--)
+  {
+    digitalWrite(sda, bitRead(data, i)); 
+    digitalWrite(sclk, 0);
+    digitalWrite(sclk, 1);
+  }
+  digitalWrite(cs, 1);
+}
+
+void update_form()
+{
+  write_word(B28 | form, DAT, CLK, FSY);  
+}
+
+void update_freq()
 {
   long freq_reg;
   freq_reg = (freq * 268435456.0) / MCLK; //2^28 = 268435456 
   freq_MSB = (uint16_t)((freq_reg) >> 14);//frequency registers are 28 bits wide, get 14 MSB
   freq_LSB = (uint16_t)(freq_reg & 0x3FFF);//get 14 LSB; 3FFF = 0011 1111 1111 1111
-  freq_LSB |= WRITE_FREQ0;
-  freq_MSB |= WRITE_FREQ0;
-}
-
-void update_freq()
-{
-  update_AD9833(B28 | RESET);
-  prepare_freq();
-  update_AD9833(freq_LSB); 
-  update_AD9833(freq_MSB); 
-  update_AD9833(form);   
+  write_word(freq_LSB | FREQ_REG_0, DAT, CLK, FSY);
+  write_word(freq_MSB | FREQ_REG_0, DAT, CLK, FSY);     
 }
 
 void init_AD9833()
 {
-  update_AD9833(B28 | RESET);
-  prepare_freq();
-  update_AD9833(freq_LSB);
-  update_AD9833(freq_MSB);
-  update_AD9833(WRITE_PHASE0); 
-  update_AD9833(EXIT_RESET | form); 
+  write_word(B28 | RESET | form, DAT, CLK, FSY);
+  update_freq();
+  write_word(PHASE_REG_0, DAT, CLK, FSY);
+  write_word(B28 | EXIT_RESET, DAT, CLK, FSY);
 }
 
-void update_AD9833(uint16_t data)
-{
-  digitalWrite(FSY, 0);
-  write_word(data);
-  digitalWrite(FSY, 1);
-}
-
-void update_MCP41010(uint16_t data)
-{
-  digitalWrite(CS, 0);
-  write_word(data);
-  digitalWrite(CS, 1);
-}
-
-void write_word(uint16_t data)
-{
-  for (int i = 15; i >= 0; i--)
-  {
-    digitalWrite(DAT, bitRead(data, i)); 
-    digitalWrite(CLK, 0);
-    digitalWrite(CLK, 1);
-  }
-}
