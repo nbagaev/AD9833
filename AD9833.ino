@@ -28,7 +28,7 @@
 #define DIV2        0x8    // used in association with OPBITEN. the MSB of the DAC data is passed directly to the VOUT pin
 #define MODE        0x2    // used in association with OPBITEN. triangle output, otherwise sinus
 
-#define SINUS       (B28 | 0x0)
+#define SINUS       B28
 #define TRIANGLE    (B28 | MODE)
 #define SQUARE      (B28 | OPBITEN | DIV2)
 
